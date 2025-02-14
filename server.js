@@ -1,6 +1,6 @@
 const { createServer } = require("http");
 const { parse } = require("url");
-const next = require("./node_modules/next");
+const next = require("next");
 const { Server } = require("socket.io");
 
 const dev = process.env.NODE_ENV !== "production";
@@ -22,21 +22,27 @@ app.prepare().then(() => {
 
     socket.on("user joined", (username) => {
       users.set(socket.id, username);
+
+      io.emit("user joined", username);
+      
       io.emit("update users", Array.from(users.values()));
-    })
+    });
 
     socket.on("chat message", (msg) => {
-      console.log("Message received: ", msg);
-      const messageWithTimestamp = {
-        ...msg,
-        timestamp: msg.timestamp || new Date(),
-      }
-      io.emit("chat message", messageWithTimestamp);
-    })
+      console.log("Message received:", msg);
+      io.emit("chat message", msg);
+    });
 
     socket.on("disconnect", () => {
       console.log("A client disconnected");
+
+      const username = users.get(socket.id);
       users.delete(socket.id);
+      
+      if (username) {
+        io.emit("user left", username);
+      }
+
       io.emit("update users", Array.from(users.values()));
     });
   });
@@ -44,6 +50,5 @@ app.prepare().then(() => {
   server.listen(3000, (err) => {
     if (err) throw err;
     console.log("> Ready on http://localhost:3000");
-  })
+  });
 });
-
