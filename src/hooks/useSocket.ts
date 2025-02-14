@@ -10,23 +10,26 @@ export const useSocket = (username: string) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [users, setUsers] = useState<string[]>([]);
 
-    const addSystemMessage = useCallback((text: string, roomId?: string) => {
-        setMessages((prevMsgs) => [
-            ...prevMsgs,
-            {
-                id: uuidv4(),
-                user: 'System',
-                text,
-                timestamp: new Date(),
-                roomId,
-                system: true,
-            }
-        ])
+    const addSystemMessage = useCallback((msg_username: string, text: string, roomId?: string) => {
+        if (msg_username !== username) {
+            setMessages((prevMsgs) => [
+                ...prevMsgs,
+                {
+                    id: uuidv4(),
+                    user: 'System',
+                    text: `${msg_username} ${text}`,
+                    timestamp: new Date(),
+                    roomId,
+                    system: true,
+                }
+            ])
+        }
     }, []);
 
     useEffect(() => {
+        if (!username) return;
+
         const socketInstance = io();
-        setSocket(socketInstance);
 
         socketInstance.on('connect', () => {
             setIsConnected(true);
@@ -36,9 +39,11 @@ export const useSocket = (username: string) => {
         socketInstance.on('disconnect', () => {
             setIsConnected(false);
         });
-        
+
         socketInstance.on('chat message', (msg: Message) => {
-            setMessages((prev) => [...prev, msg]);
+            if (msg.system && msg.user !== username) {
+                setMessages((prev) => [...prev, msg]);
+            }
         });
 
         socketInstance.on('update users', (updatedUsers: string[]) => {
@@ -46,12 +51,14 @@ export const useSocket = (username: string) => {
         })
 
         socketInstance.on("user joined", (joinedUsername: string) => {
-            addSystemMessage(`${joinedUsername} joined the chat`);
+            addSystemMessage(joinedUsername, 'joined the chat');
         })
 
         socketInstance.on("user left", (leftUsername: string) => {
-            addSystemMessage(`${leftUsername} has left the chat`);
+            addSystemMessage(leftUsername, 'has left the chat');
         })
+
+        setSocket(socketInstance);
 
         return () => {
             socketInstance.disconnect();
