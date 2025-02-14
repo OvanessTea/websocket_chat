@@ -20,7 +20,11 @@ app.prepare().then(() => {
 
     socket.on("chat message", (msg) => {
       console.log("Message received: ", msg);
-      io.emit("chat message", msg);
+      const messageWithTimestamp = {
+        ...msg,
+        timestamp: msg.timestamp || new Date(),
+      }
+      io.emit("chat message", messageWithTimestamp);
     })
 
     socket.on("disconnect", () => {
