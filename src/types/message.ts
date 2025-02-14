@@ -4,4 +4,5 @@ export type Message = {
     text: string;
     timestamp: Date;
     roomId?: string;
+    system?: boolean;
 }
