@@ -4,6 +4,14 @@ import { io, Socket } from 'socket.io-client';
 import { Message } from '../types/message';
 import { v4 as uuidv4 } from 'uuid';
 
+const debounce = (func: (...args: any[]) => void, delay: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+    }
+}
+
 export const useSocket = (username: string) => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -50,7 +58,7 @@ export const useSocket = (username: string) => {
         })
 
         socketInstance.on('chat message', (msg: Message) => {
-            if (msg.system && msg.user !== username) {
+            if (!msg.system || (msg.system && msg.user !== username)) {
                 setMessages((prev) => [...prev, msg]);
             }
         });
@@ -85,11 +93,25 @@ export const useSocket = (username: string) => {
             socket.emit('chat message', message);
         }
     }
-    const sendTypingStatus = (isTyping: boolean) => {
+    const debouncedSendTypingStatus = useCallback(debounce((isTyping: boolean) => {
         if (socket) {
-            socket.emit(isTyping ? 'typing' : 'stop typing', username);
+            socket.emit((isTyping ? 'typing' : 'stop typing'), username);
         }
-    }
+    }, 300), [socket, username]);
 
-    return { isConnected, messages, sendMessage, users, typingUsers, sendTypingStatus };
+    const stopTypingImmediately = useCallback(() => {
+        if (socket) {
+            socket.emit('stop typing', username);
+        }
+    }, [socket, username]);
+
+    return { 
+        isConnected, 
+        messages, 
+        sendMessage, 
+        users, 
+        typingUsers, 
+        sendTypingStatus: debouncedSendTypingStatus, 
+        stopTypingImmediately 
+    };
 } 
