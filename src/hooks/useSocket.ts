@@ -9,6 +9,7 @@ export const useSocket = (username: string) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [users, setUsers] = useState<string[]>([]);
+    const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
     const addSystemMessage = useCallback((msg_username: string, text: string, roomId?: string) => {
         if (msg_username !== username) {
@@ -39,6 +40,14 @@ export const useSocket = (username: string) => {
         socketInstance.on('disconnect', () => {
             setIsConnected(false);
         });
+
+        socketInstance.on('typing', (typingUsername: string) => {
+            setTypingUsers((prev) => Array.from(new Set([...prev, typingUsername])));
+        })
+
+        socketInstance.on('stop typing', (typingUsername: string) => {
+            setTypingUsers((prev) => prev.filter((user) => user !== typingUsername));
+        })
 
         socketInstance.on('chat message', (msg: Message) => {
             if (msg.system && msg.user !== username) {
@@ -76,6 +85,11 @@ export const useSocket = (username: string) => {
             socket.emit('chat message', message);
         }
     }
+    const sendTypingStatus = (isTyping: boolean) => {
+        if (socket) {
+            socket.emit(isTyping ? 'typing' : 'stop typing', username);
+        }
+    }
 
-    return { isConnected, messages, sendMessage, users };
+    return { isConnected, messages, sendMessage, users, typingUsers, sendTypingStatus };
 } 
