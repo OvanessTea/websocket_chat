@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import ChatMessage from './ChatMessage';
 import OnlineUsers from './OnlineUsers';
+import TypingIndicator from './TypingIndicator';
 
 interface ChatInterfaceProps {
   username: string;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ username }) => {
-  const { isConnected, messages, sendMessage, users } = useSocket(username);
+  const { isConnected, messages, sendMessage, users, typingUsers, sendTypingStatus, stopTypingImmediately } = useSocket(username);
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -16,11 +17,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ username }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMessage(e.target.value);
+    sendTypingStatus(e.target.value.length > 0);
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMessage.trim()) {
       sendMessage(inputMessage);
       setInputMessage('');
+      stopTypingImmediately();
+      sendTypingStatus(false);
     }
   };
 
@@ -37,11 +45,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ username }) => {
           ))}
           <div ref={messagesEndRef} />
         </div>
+        <TypingIndicator typingUsers={typingUsers.filter((user) => user !== username)} />
         <form onSubmit={handleSubmit} className="flex">
           <input
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             className="flex-grow mr-2 p-2 border border-gray-300 rounded"
             placeholder="Type a message..."
           />
