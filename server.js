@@ -24,8 +24,8 @@ app.prepare().then(() => {
       socket.broadcast.emit("typing", username);
     });
 
-    socket.on("stop typing", () => {
-      socket.broadcast.emit("stop typing");
+    socket.on("stop typing", (username) => {
+      socket.broadcast.emit("stop typing", username);
     });
 
     socket.on("user joined", (username) => {
