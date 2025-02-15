@@ -20,6 +20,14 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("A client connected");
 
+    socket.on("typing", (username) => {
+      socket.broadcast.emit("typing", username);
+    });
+
+    socket.on("stop typing", () => {
+      socket.broadcast.emit("stop typing");
+    });
+
     socket.on("user joined", (username) => {
       users.set(socket.id, username);
 
