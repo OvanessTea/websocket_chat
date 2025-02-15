@@ -17,6 +17,8 @@ export const useSocket = (username: string) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [users, setUsers] = useState<string[]>([]);
+    const [currentRoom, setCurrentRoom] = useState("general");
+    const [availableRooms, setAvailableRooms] = useState<string[]>(["general"]);
     const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
     const addSystemMessage = useCallback((msg_username: string, text: string, roomId?: string) => {
@@ -67,6 +69,15 @@ export const useSocket = (username: string) => {
             setUsers(updatedUsers);
         })
 
+        socketInstance.on('update rooms', (updatedRooms: string[]) => {
+            setAvailableRooms(updatedRooms);
+        })
+
+        socketInstance.on('room joined', (roomName: string) => {
+            setCurrentRoom(roomName);
+            setMessages([]);
+        })
+
         socketInstance.on("user joined", (joinedUsername: string) => {
             addSystemMessage(joinedUsername, 'joined the chat');
         })
@@ -89,10 +100,24 @@ export const useSocket = (username: string) => {
                 user: username,
                 text,
                 timestamp: new Date(),
+                roomId: currentRoom,
             };
             socket.emit('chat message', message);
         }
     }
+
+    const createRoom = useCallback((roomName: string) => {
+        if (socket) {
+            socket.emit('create room', roomName);
+        }
+    }, [socket]);
+
+    const joinRoom = useCallback((roomName: string) => {
+        if (socket) {
+            socket.emit('join room', roomName);
+        }
+    }, [socket]);
+    
     const debouncedSendTypingStatus = useCallback(debounce((isTyping: boolean) => {
         if (socket) {
             socket.emit((isTyping ? 'typing' : 'stop typing'), username);
@@ -112,6 +137,10 @@ export const useSocket = (username: string) => {
         users, 
         typingUsers, 
         sendTypingStatus: debouncedSendTypingStatus, 
-        stopTypingImmediately 
+        stopTypingImmediately,
+        createRoom,
+        joinRoom,
+        currentRoom,
+        availableRooms,
     };
 } 
