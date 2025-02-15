@@ -8,7 +8,7 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const users = new Map();
-const rooms = new Map();
+const rooms = new Set(["general"]);
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
